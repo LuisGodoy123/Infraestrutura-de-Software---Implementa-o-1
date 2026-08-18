@@ -57,3 +57,40 @@ void ComandoTask(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos
     ProcessFlow->QuantidadeTarefas++;
     printf("tarefa '%s' cadastrada\n", NovaTarefa->Nome);
 }
+
+int ProcessarLinha(Shell *ProcessFlow, char *Linha) {
+    char *Tokens[MAXIMO_TOKENS];
+    int QuantidadeTokens = Tokenizar(Linha, Tokens, MAXIMO_TOKENS);
+
+    if (QuantidadeTokens == 0) {
+        return 1;
+    }
+
+    if (strcmp(Tokens[0], "exit") == 0) {
+        return 0;
+    } else if (strcmp(Tokens[0], "task") == 0) {
+        ComandoTask(ProcessFlow, Tokens, QuantidadeTokens);
+    } else {
+        fprintf(stderr, "comando desconhecido '%s'\n", Tokens[0]);
+    }
+
+    return 1;
+}
+
+void ExecutarModoInterativo(Shell *ProcessFlow) {
+    char Linha[TAMANHO_MAXIMO_LINHA];
+
+    while (1) {
+        printf("processflow> ");
+        fflush(stdout);
+
+        if (fgets(Linha, sizeof(Linha), stdin) == NULL) {
+            printf("\n");
+            break;
+        }
+
+        if (!ProcessarLinha(ProcessFlow, Linha)) {
+            break;
+        }
+    }
+}
