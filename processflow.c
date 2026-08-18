@@ -94,3 +94,42 @@ void ExecutarModoInterativo(Shell *ProcessFlow) {
         }
     }
 }
+
+void ExecutarModoWorkflow(Shell *ProcessFlow, const char *NomeArquivo) {
+    FILE *Arquivo = fopen(NomeArquivo, "r");
+    if (Arquivo == NULL) {
+        fprintf(stderr, "nao foi possivel abrir o arquivo workflow '%s'\n", NomeArquivo);
+        exit(1);
+    }
+
+    char Linha[TAMANHO_MAXIMO_LINHA];
+    while (fgets(Linha, sizeof(Linha), Arquivo) != NULL) {
+        printf("%s", Linha);
+        if (Linha[strlen(Linha) - 1] != '\n') {
+            printf("\n");
+        }
+        if (!ProcessarLinha(ProcessFlow, Linha)) {
+            break;
+        }
+    }
+
+    fclose(Arquivo);
+}
+
+int main(int QuantidadeArgumentos, char *Argumentos[]) {
+    if (QuantidadeArgumentos > 2) {
+        fprintf(stderr, "uso: %s [workflowFile]\n", Argumentos[0]);
+        return 1;
+    }
+
+    Shell ProcessFlow;
+    InicializarShell(&ProcessFlow);
+
+    if (QuantidadeArgumentos == 2) {
+        ExecutarModoWorkflow(&ProcessFlow, Argumentos[1]);
+    } else {
+        ExecutarModoInterativo(&ProcessFlow);
+    }
+
+    return 0;
+}
