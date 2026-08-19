@@ -1,0 +1,23 @@
+=== ProcessFlow - Evidencias de Testes ===
+
+--- Compilacao (make all) ---
+gcc -Wall -Wextra -std=c11 -o processflow processflow.c
+
+--- Teste 1: modo interativo - task, linha vazia, comando desconhecido, exit ---
+processflow> tarefa 'listar' cadastrada
+processflow> processflow> comando desconhecido 'foo'
+processflow> 
+--- Teste 2: uso incorreto do task (poucos argumentos) ---
+processflow> task, nome, programa,argumentos...
+processflow> 
+--- Teste 3: numero incorreto de argumentos ao iniciar (erro fatal, exit code 1 verificado via PowerShell) ---
+uso: ./processflow [workflowFile]
+
+--- Teste 4: workflow file inexistente (erro fatal, exit code 1 verificado via PowerShell) ---
+nao foi possivel abrir o arquivo workflow 'nao_existe.pf'
+
+--- Teste 5: modo workflow com EOF sem exit (arquivo .pf de teste) ---
+task listar /bin/ls -l
+tarefa 'listar' cadastrada
+task contar /usr/bin/wc -l
+tarefa 'contar' cadastrada
