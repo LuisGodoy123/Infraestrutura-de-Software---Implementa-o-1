@@ -1,22 +1,56 @@
 === ProcessFlow - Evidencias de Testes ===
+Thu Aug 20 18:31:05 -03 2026
 
---- Compilacao (make all) ---
+--- Compilacao (make clean && make all) ---
+rm -f processflow
 gcc -Wall -Wextra -std=c11 -o processflow processflow.c
 
---- Teste 1: modo interativo - task, linha vazia, comando desconhecido, exit ---
-processflow> tarefa 'listar' cadastrada
-processflow> processflow> comando desconhecido 'foo'
-processflow> 
---- Teste 2: uso incorreto do task (poucos argumentos) ---
-processflow> task, nome, programa,argumentos...
-processflow> 
---- Teste 3: numero incorreto de argumentos ao iniciar (erro fatal, exit code 1 verificado via PowerShell) ---
+--- Teste 1: fluxo completo via workflow (.pf) ---
+--- cobre: task, run sequential, run parallel, run pipe, erros nao-fatais, linha vazia, comando desconhecido ---
+task listar /bin/ls
+tarefa 'listar' cadastrada
+task ordenar /usr/bin/sort
+tarefa 'ordenar' cadastrada
+task contar /usr/bin/wc -l
+tarefa 'contar' cadastrada
+task saudacao /bin/echo ola mundo
+tarefa 'saudacao' cadastrada
+
+run sequential saudacao listar
+ola mundo
+Makefile
+README.md
+evidencias.log
+processflow
+processflow.c
+processflow.h
+teste_evidencias.pf
+teste_sem_exit.pf
+run parallel saudacao saudacao
+ola mundo
+ola mundo
+run pipe listar ordenar contar
+8
+
+task
+task, nome, programa,argumentos...
+run
+run sequential|parallel|pipe, tarefa...>
+run modoinvalido listar
+modo desconhecido 'modoinvalido'
+run sequential tarefainexistente
+tarefa 'tarefainexistente' nao encontrada
+comandoinvalido
+comando desconhecido 'comandoinvalido'
+exit
+
+--- Teste 2: numero incorreto de argumentos ao iniciar (erro fatal) ---
 uso: ./processflow [workflowFile]
 
---- Teste 4: workflow file inexistente (erro fatal, exit code 1 verificado via PowerShell) ---
+--- Teste 3: workflow file inexistente (erro fatal) ---
 nao foi possivel abrir o arquivo workflow 'nao_existe.pf'
 
---- Teste 5: modo workflow com EOF sem exit (arquivo .pf de teste) ---
+--- Teste 4: workflow sem comando exit, encerra por EOF do arquivo ---
 task listar /bin/ls -l
 tarefa 'listar' cadastrada
 task contar /usr/bin/wc -l

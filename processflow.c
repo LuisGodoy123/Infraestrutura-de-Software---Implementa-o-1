@@ -231,6 +231,7 @@ void ExecutarModoWorkflow(Shell *ProcessFlow, const char *NomeArquivo) {
         if (Linha[strlen(Linha) - 1] != '\n') {
             printf("\n");
         }
+        fflush(stdout);
         if (!ProcessarLinha(ProcessFlow, Linha)) {
             break;
         }
