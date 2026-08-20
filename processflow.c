@@ -98,6 +98,51 @@ void ComandoTask(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos
     printf("tarefa '%s' cadastrada\n", NovaTarefa->Nome);
 }
 
+void ComandoRun(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    if (QuantidadeArgumentos < 3) {
+        fprintf(stderr, "run sequential|parallel|pipe, tarefa...>\n");
+        return;
+    }
+
+    char *Modo = Argumentos[1];
+    int QuantidadeTarefas = QuantidadeArgumentos - 2;
+
+    if (QuantidadeTarefas > MAXIMO_PIPELINE) {
+        fprintf(stderr, "numero maximo de tarefas em um run excedido\n");
+        return;
+    }
+
+    Tarefa *Tarefas[MAXIMO_PIPELINE];
+    for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
+        Tarefas[Indice] = BuscarTarefa(ProcessFlow, Argumentos[Indice + 2]);
+        if (Tarefas[Indice] == NULL) {
+            fprintf(stderr, "tarefa '%s' nao encontrada\n", Argumentos[Indice + 2]);
+            return;
+        }
+    }
+
+    if (strcmp(Modo, "sequencial") == 0) {
+        for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
+            pid_t Pid = IniciarTarefa(Tarefas[Indice], -1, -1);
+            if (Pid > 0) {
+                waitpid(Pid, NULL, 0);
+            }
+        }
+    } else if (strcmp(Modo, "paralelo") == 0) {
+        pid_t Pids[MAXIMO_PIPELINE];
+        for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
+            Pids[Indice] = IniciarTarefa(Tarefas[Indice], -1, -1);
+        }
+        for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
+            if (Pids[Indice] > 0) {
+                waitpid(Pids[Indice], NULL, 0);
+            }
+        }
+    } else {
+        fprintf(stderr, "modo desconhecido '%s'\n", Modo);
+    }
+}
+
 int ProcessarLinha(Shell *ProcessFlow, char *Linha) {
     char *Tokens[MAXIMO_TOKENS];
     int QuantidadeTokens = Tokenizar(Linha, Tokens, MAXIMO_TOKENS);
@@ -110,6 +155,8 @@ int ProcessarLinha(Shell *ProcessFlow, char *Linha) {
         return 0;
     } else if (strcmp(Tokens[0], "task") == 0) {
         ComandoTask(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "run") == 0) {
+        ComandoRun(ProcessFlow, Tokens, QuantidadeTokens);
     } else {
         fprintf(stderr, "comando desconhecido '%s'\n", Tokens[0]);
     }
