@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,7 +92,7 @@ void ComandoTask(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos
 
     NovaTarefa->QuantidadeArgumentos = 0;
     for (int Indice = 2; Indice < QuantidadeArgumentos && NovaTarefa->QuantidadeArgumentos < MAXIMO_TOKENS - 1; Indice++) {
-        NovaTarefa->Argumentos[NovaTarefa->QuantidadeArgumentos++] = Argumentos[Indice];
+        NovaTarefa->Argumentos[NovaTarefa->QuantidadeArgumentos++] = strdup(Argumentos[Indice]);
     }
     NovaTarefa->Argumentos[NovaTarefa->QuantidadeArgumentos] = NULL;
 
@@ -121,18 +123,52 @@ void ComandoRun(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos)
         }
     }
 
-    if (strcmp(Modo, "sequencial") == 0) {
+    if (strcmp(Modo, "sequential") == 0) {
         for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
             pid_t Pid = IniciarTarefa(Tarefas[Indice], -1, -1);
             if (Pid > 0) {
                 waitpid(Pid, NULL, 0);
             }
         }
-    } else if (strcmp(Modo, "paralelo") == 0) {
+    } else if (strcmp(Modo, "parallel") == 0) {
         pid_t Pids[MAXIMO_PIPELINE];
         for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
             Pids[Indice] = IniciarTarefa(Tarefas[Indice], -1, -1);
         }
+        for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
+            if (Pids[Indice] > 0) {
+                waitpid(Pids[Indice], NULL, 0);
+            }
+        }
+    } else if (strcmp(Modo, "pipe") == 0) {
+        int QuantidadePipes = QuantidadeTarefas - 1;
+        int Pipes[MAXIMO_PIPELINE - 1][2];
+
+        for (int Indice = 0; Indice < QuantidadePipes; Indice++) {
+            if (pipe(Pipes[Indice]) == -1) {
+                fprintf(stderr, "nao foi possivel criar pipe\n");
+                for (int Anterior = 0; Anterior < Indice; Anterior++) {
+                    close(Pipes[Anterior][0]);
+                    close(Pipes[Anterior][1]);
+                }
+                return;
+            }
+            fcntl(Pipes[Indice][0], F_SETFD, FD_CLOEXEC);
+            fcntl(Pipes[Indice][1], F_SETFD, FD_CLOEXEC);
+        }
+
+        pid_t Pids[MAXIMO_PIPELINE];
+        for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
+            int DescritorEntrada = (Indice == 0) ? -1 : Pipes[Indice - 1][0];
+            int DescritorSaida = (Indice == QuantidadeTarefas - 1) ? -1 : Pipes[Indice][1];
+            Pids[Indice] = IniciarTarefa(Tarefas[Indice], DescritorEntrada, DescritorSaida);
+        }
+
+        for (int Indice = 0; Indice < QuantidadePipes; Indice++) {
+            close(Pipes[Indice][0]);
+            close(Pipes[Indice][1]);
+        }
+
         for (int Indice = 0; Indice < QuantidadeTarefas; Indice++) {
             if (Pids[Indice] > 0) {
                 waitpid(Pids[Indice], NULL, 0);

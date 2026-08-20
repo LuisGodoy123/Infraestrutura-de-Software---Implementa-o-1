@@ -8,6 +8,7 @@
 #define MAXIMO_TAREFAS 128
 #define MAXIMO_TRABALHOS 128
 #define TAMANHO_MAXIMO_NOME 64
+#define MAXIMO_PIPELINE 32
 
 typedef struct {
     char Nome[TAMANHO_MAXIMO_NOME];
