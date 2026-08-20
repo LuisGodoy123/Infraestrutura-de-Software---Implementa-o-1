@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include "processflow.h"
 
@@ -18,6 +19,45 @@ Tarefa *BuscarTarefa(Shell *ProcessFlow, const char *Nome) {
         }
     }
     return NULL;
+}
+
+pid_t IniciarTarefa(Tarefa *TarefaAlvo, int DescritorEntrada, int DescritorSaida) {
+    pid_t Pid = fork();
+
+    if (Pid == 0) {
+        if (DescritorEntrada != -1) {
+            dup2(DescritorEntrada, STDIN_FILENO);
+            close(DescritorEntrada);
+        } else if (TarefaAlvo->ArquivoEntrada != NULL) {
+            int Fd = open(TarefaAlvo->ArquivoEntrada, O_RDONLY);
+            if (Fd == -1) {
+                fprintf(stderr, "nao foi possivel abrir arquivo de entrada '%s'\n", TarefaAlvo->ArquivoEntrada);
+                _exit(1);
+            }
+            dup2(Fd, STDIN_FILENO);
+            close(Fd);
+        }
+
+        if (DescritorSaida != -1) {
+            dup2(DescritorSaida, STDOUT_FILENO);
+            close(DescritorSaida);
+        } else if (TarefaAlvo->ArquivoSaida != NULL) {
+            int Flags = O_WRONLY | O_CREAT | (TarefaAlvo->ModoAnexar ? O_APPEND : O_TRUNC);
+            int Fd = open(TarefaAlvo->ArquivoSaida, Flags, 0644);
+            if (Fd == -1) {
+                fprintf(stderr, "nao foi possivel abrir arquivo de saida '%s'\n", TarefaAlvo->ArquivoSaida);
+                _exit(1);
+            }
+            dup2(Fd, STDOUT_FILENO);
+            close(Fd);
+        }
+
+        execvp(TarefaAlvo->Argumentos[0], TarefaAlvo->Argumentos);
+        fprintf(stderr, "nao foi possivel executar '%s'\n", TarefaAlvo->Argumentos[0]);
+        _exit(127);
+    }
+
+    return Pid;
 }
 
 int Tokenizar(char *Linha, char **Tokens, int MaximoTokens) {
