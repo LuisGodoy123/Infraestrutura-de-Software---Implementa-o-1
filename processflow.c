@@ -189,6 +189,19 @@ void ComandoAppend(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgument
     TarefaAlvo->ModoAnexar = 1;
 }
 
+void ComandoWorkdir(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    (void)ProcessFlow;
+
+    if (QuantidadeArgumentos < 2) {
+        fprintf(stderr, "uso: workdir <diretorio>\n");
+        return;
+    }
+
+    if (chdir(Argumentos[1]) == -1) {
+        fprintf(stderr, "diretorio '%s' nao encontrado\n", Argumentos[1]);
+    }
+}
+
 void ComandoStart(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
     if (QuantidadeArgumentos < 2) {
         fprintf(stderr, "uso: start <tarefa>\n");
@@ -368,6 +381,8 @@ int ProcessarLinha(Shell *ProcessFlow, char *Linha) {
         ComandoJobs(ProcessFlow, Tokens, QuantidadeTokens);
     } else if (strcmp(Tokens[0], "wait") == 0) {
         ComandoWait(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "workdir") == 0) {
+        ComandoWorkdir(ProcessFlow, Tokens, QuantidadeTokens);
     } else {
         fprintf(stderr, "comando desconhecido '%s'\n", Tokens[0]);
     }
