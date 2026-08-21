@@ -23,6 +23,45 @@ Tarefa *BuscarTarefa(Shell *ProcessFlow, const char *Nome) {
     return NULL;
 }
 
+Trabalho *BuscarTrabalho(Shell *ProcessFlow, int Id) {
+    for (int Indice = 0; Indice < ProcessFlow->QuantidadeTrabalhos; Indice++) {
+        if (ProcessFlow->Trabalhos[Indice].Id == Id) {
+            return &ProcessFlow->Trabalhos[Indice];
+        }
+    }
+    return NULL;
+}
+
+void ColherTrabalhosFinalizados(Shell *ProcessFlow) {
+    for (int Indice = 0; Indice < ProcessFlow->QuantidadeTrabalhos; Indice++) {
+        Trabalho *TrabalhoAtual = &ProcessFlow->Trabalhos[Indice];
+        if (TrabalhoAtual->Estado != TRABALHO_EXECUTANDO) {
+            continue;
+        }
+
+        int StatusSaida;
+        pid_t Resultado = waitpid(TrabalhoAtual->Pid, &StatusSaida, WNOHANG);
+        if (Resultado == TrabalhoAtual->Pid) {
+            TrabalhoAtual->Estado = TRABALHO_FINALIZADO;
+            TrabalhoAtual->CodigoSaida = WIFEXITED(StatusSaida) ? WEXITSTATUS(StatusSaida) : -1;
+        }
+    }
+}
+
+void AguardarTodosTrabalhos(Shell *ProcessFlow) {
+    for (int Indice = 0; Indice < ProcessFlow->QuantidadeTrabalhos; Indice++) {
+        Trabalho *TrabalhoAtual = &ProcessFlow->Trabalhos[Indice];
+        if (TrabalhoAtual->Estado != TRABALHO_EXECUTANDO) {
+            continue;
+        }
+
+        int StatusSaida;
+        waitpid(TrabalhoAtual->Pid, &StatusSaida, 0);
+        TrabalhoAtual->Estado = TRABALHO_FINALIZADO;
+        TrabalhoAtual->CodigoSaida = WIFEXITED(StatusSaida) ? WEXITSTATUS(StatusSaida) : -1;
+    }
+}
+
 pid_t IniciarTarefa(Tarefa *TarefaAlvo, int DescritorEntrada, int DescritorSaida) {
     pid_t Pid = fork();
 
@@ -150,6 +189,80 @@ void ComandoAppend(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgument
     TarefaAlvo->ModoAnexar = 1;
 }
 
+void ComandoStart(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    if (QuantidadeArgumentos < 2) {
+        fprintf(stderr, "uso: start <tarefa>\n");
+        return;
+    }
+
+    Tarefa *TarefaAlvo = BuscarTarefa(ProcessFlow, Argumentos[1]);
+    if (TarefaAlvo == NULL) {
+        fprintf(stderr, "tarefa '%s' nao encontrada\n", Argumentos[1]);
+        return;
+    }
+
+    if (ProcessFlow->QuantidadeTrabalhos >= MAXIMO_TRABALHOS) {
+        fprintf(stderr, "numero maximo de trabalhos em background atingido\n");
+        return;
+    }
+
+    pid_t Pid = IniciarTarefa(TarefaAlvo, -1, -1);
+    if (Pid <= 0) {
+        fprintf(stderr, "nao foi possivel iniciar a tarefa '%s'\n", TarefaAlvo->Nome);
+        return;
+    }
+
+    Trabalho *NovoTrabalho = &ProcessFlow->Trabalhos[ProcessFlow->QuantidadeTrabalhos];
+    NovoTrabalho->Id = ProcessFlow->ProximoIdTrabalho++;
+    NovoTrabalho->Pid = Pid;
+    strncpy(NovoTrabalho->NomeTarefa, TarefaAlvo->Nome, TAMANHO_MAXIMO_NOME - 1);
+    NovoTrabalho->NomeTarefa[TAMANHO_MAXIMO_NOME - 1] = '\0';
+    NovoTrabalho->Estado = TRABALHO_EXECUTANDO;
+    NovoTrabalho->CodigoSaida = 0;
+    ProcessFlow->QuantidadeTrabalhos++;
+
+    printf("[%d] %d\n", NovoTrabalho->Id, NovoTrabalho->Pid);
+}
+
+void ComandoJobs(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    (void)Argumentos;
+    (void)QuantidadeArgumentos;
+
+    ColherTrabalhosFinalizados(ProcessFlow);
+
+    for (int Indice = 0; Indice < ProcessFlow->QuantidadeTrabalhos; Indice++) {
+        Trabalho *TrabalhoAtual = &ProcessFlow->Trabalhos[Indice];
+        if (TrabalhoAtual->Estado == TRABALHO_EXECUTANDO) {
+            printf("[%d] %d executando %s\n", TrabalhoAtual->Id, TrabalhoAtual->Pid, TrabalhoAtual->NomeTarefa);
+        } else {
+            printf("[%d] %d finalizado (codigo %d) %s\n", TrabalhoAtual->Id, TrabalhoAtual->Pid, TrabalhoAtual->CodigoSaida, TrabalhoAtual->NomeTarefa);
+        }
+    }
+}
+
+void ComandoWait(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    if (QuantidadeArgumentos < 2) {
+        fprintf(stderr, "uso: wait <jobId>\n");
+        return;
+    }
+
+    int Id = atoi(Argumentos[1]);
+    Trabalho *TrabalhoAlvo = BuscarTrabalho(ProcessFlow, Id);
+    if (TrabalhoAlvo == NULL) {
+        fprintf(stderr, "job '%s' nao encontrado\n", Argumentos[1]);
+        return;
+    }
+
+    if (TrabalhoAlvo->Estado == TRABALHO_EXECUTANDO) {
+        int StatusSaida;
+        waitpid(TrabalhoAlvo->Pid, &StatusSaida, 0);
+        TrabalhoAlvo->Estado = TRABALHO_FINALIZADO;
+        TrabalhoAlvo->CodigoSaida = WIFEXITED(StatusSaida) ? WEXITSTATUS(StatusSaida) : -1;
+    }
+
+    printf("[%d] %d finalizado (codigo %d)\n", TrabalhoAlvo->Id, TrabalhoAlvo->Pid, TrabalhoAlvo->CodigoSaida);
+}
+
 void ComandoRun(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
     if (QuantidadeArgumentos < 3) {
         fprintf(stderr, "run sequential|parallel|pipe, tarefa...>\n");
@@ -249,6 +362,12 @@ int ProcessarLinha(Shell *ProcessFlow, char *Linha) {
         ComandoOutput(ProcessFlow, Tokens, QuantidadeTokens);
     } else if (strcmp(Tokens[0], "append") == 0) {
         ComandoAppend(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "start") == 0) {
+        ComandoStart(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "jobs") == 0) {
+        ComandoJobs(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "wait") == 0) {
+        ComandoWait(ProcessFlow, Tokens, QuantidadeTokens);
     } else {
         fprintf(stderr, "comando desconhecido '%s'\n", Tokens[0]);
     }
@@ -310,6 +429,8 @@ int main(int QuantidadeArgumentos, char *Argumentos[]) {
     } else {
         ExecutarModoInterativo(&ProcessFlow);
     }
+
+    AguardarTodosTrabalhos(&ProcessFlow);
 
     return 0;
 }
