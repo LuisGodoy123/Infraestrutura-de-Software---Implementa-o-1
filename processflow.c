@@ -100,6 +100,56 @@ void ComandoTask(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos
     printf("tarefa '%s' cadastrada\n", NovaTarefa->Nome);
 }
 
+void ComandoInput(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    if (QuantidadeArgumentos < 3) {
+        fprintf(stderr, "uso: input <tarefa> <arquivo>\n");
+        return;
+    }
+
+    Tarefa *TarefaAlvo = BuscarTarefa(ProcessFlow, Argumentos[1]);
+    if (TarefaAlvo == NULL) {
+        fprintf(stderr, "tarefa '%s' nao encontrada\n", Argumentos[1]);
+        return;
+    }
+
+    free(TarefaAlvo->ArquivoEntrada);
+    TarefaAlvo->ArquivoEntrada = strdup(Argumentos[2]);
+}
+
+void ComandoOutput(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    if (QuantidadeArgumentos < 3) {
+        fprintf(stderr, "uso: output <tarefa> <arquivo>\n");
+        return;
+    }
+
+    Tarefa *TarefaAlvo = BuscarTarefa(ProcessFlow, Argumentos[1]);
+    if (TarefaAlvo == NULL) {
+        fprintf(stderr, "tarefa '%s' nao encontrada\n", Argumentos[1]);
+        return;
+    }
+
+    free(TarefaAlvo->ArquivoSaida);
+    TarefaAlvo->ArquivoSaida = strdup(Argumentos[2]);
+    TarefaAlvo->ModoAnexar = 0;
+}
+
+void ComandoAppend(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
+    if (QuantidadeArgumentos < 3) {
+        fprintf(stderr, "uso: append <tarefa> <arquivo>\n");
+        return;
+    }
+
+    Tarefa *TarefaAlvo = BuscarTarefa(ProcessFlow, Argumentos[1]);
+    if (TarefaAlvo == NULL) {
+        fprintf(stderr, "tarefa '%s' nao encontrada\n", Argumentos[1]);
+        return;
+    }
+
+    free(TarefaAlvo->ArquivoSaida);
+    TarefaAlvo->ArquivoSaida = strdup(Argumentos[2]);
+    TarefaAlvo->ModoAnexar = 1;
+}
+
 void ComandoRun(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
     if (QuantidadeArgumentos < 3) {
         fprintf(stderr, "run sequential|parallel|pipe, tarefa...>\n");
@@ -193,6 +243,12 @@ int ProcessarLinha(Shell *ProcessFlow, char *Linha) {
         ComandoTask(ProcessFlow, Tokens, QuantidadeTokens);
     } else if (strcmp(Tokens[0], "run") == 0) {
         ComandoRun(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "input") == 0) {
+        ComandoInput(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "output") == 0) {
+        ComandoOutput(ProcessFlow, Tokens, QuantidadeTokens);
+    } else if (strcmp(Tokens[0], "append") == 0) {
+        ComandoAppend(ProcessFlow, Tokens, QuantidadeTokens);
     } else {
         fprintf(stderr, "comando desconhecido '%s'\n", Tokens[0]);
     }
