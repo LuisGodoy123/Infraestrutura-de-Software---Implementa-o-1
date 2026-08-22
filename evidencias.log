@@ -1,12 +1,29 @@
 === ProcessFlow - Evidencias de Testes ===
-Fri Aug 21 13:01:14 -03 2026
+Sat Aug 22 11:41:24 -03 2026
+nononha
+/mnt/c/Users/nonon/Desktop/lagi/Infraestrutura-de-Software---Implementa-o-1
 
 --- Compilacao (make clean && make all) ---
 rm -f processflow
 gcc -Wall -Wextra -std=c11 -o processflow processflow.c
 
---- Teste 1: fluxo completo - task, run sequential/parallel/pipe, input/output/append,
---- codigo de saida != 0, start/jobs/wait, workdir, erros nao-fatais ---
+--- Teste 1: modo interativo puro (sem argumento), prompt processflow>, multiplos espacos,
+--- EOF/CTRL-D sem exit encerrando o programa (sem printf, via redirecionamento de arquivo) ---
+processflow> tarefa 'listar' cadastrada
+processflow> Makefile
+README.md
+evidencias.log
+processflow
+processflow.c
+processflow.h
+teste_arquivos_invalidos.pf
+teste_completo.pf
+teste_interativo_stdin.txt
+teste_sem_exit.pf
+processflow> 
+
+--- Teste 2: fluxo completo em modo workflow - task, run sequential/parallel/pipe,
+--- input/output/append, codigo de saida != 0, start/jobs/wait, workdir, erros nao-fatais ---
 task listar /bin/ls
 tarefa 'listar' cadastrada
 task ordenar /usr/bin/sort
@@ -30,19 +47,21 @@ evidencias.log
 processflow
 processflow.c
 processflow.h
+teste_arquivos_invalidos.pf
 teste_completo.pf
+teste_interativo_stdin.txt
 teste_sem_exit.pf
 run parallel saudacao saudacao
 ola mundo
 ola mundo
 run pipe listar ordenar contar
-8
+10
 
 output listar lista_saida.txt
 run sequential listar
 input contar lista_saida.txt
 run sequential contar
-9
+11
 append saudacao lista_saida.txt
 run sequential saudacao
 
@@ -50,16 +69,16 @@ run sequential falha saudacao
 ls: cannot access '/caminho/que/nao/existe': No such file or directory
 
 start lenta
-[1] 1257
+[1] 485
 jobs
-[1] 1257 executando lenta
+[1] 485 executando lenta
 start rapida
-[2] 1258
+[2] 486
 wait 1
-[1] 1257 finalizado (codigo 0)
+[1] 485 finalizado (codigo 0)
 jobs
-[1] 1257 finalizado (codigo 0) lenta
-[2] 1258 finalizado (codigo 0) rapida
+[1] 485 finalizado (codigo 0) lenta
+[2] 486 finalizado (codigo 0) rapida
 wait 99
 job '99' nao encontrado
 
@@ -91,18 +110,40 @@ lista_saida.txt
 processflow
 processflow.c
 processflow.h
+teste_arquivos_invalidos.pf
 teste_completo.pf
+teste_interativo_stdin.txt
 teste_sem_exit.pf
 ola mundo
 ola mundo
 
---- Teste 2: numero incorreto de argumentos ao iniciar (erro fatal) ---
+--- Teste 3: arquivo de entrada inexistente e arquivo de saida em diretorio inexistente ---
+--- (nao podem ser abertos) - erro nao-fatal, programa continua normalmente ---
+task contar /usr/bin/wc -l
+tarefa 'contar' cadastrada
+input contar arquivo_que_nao_existe_de_verdade.txt
+run sequential contar
+nao foi possivel abrir arquivo de entrada 'arquivo_que_nao_existe_de_verdade.txt'
+
+task listar /bin/ls
+tarefa 'listar' cadastrada
+output listar /caminho/que/definitivamente/nao/existe/saida.txt
+run sequential listar
+nao foi possivel abrir arquivo de saida '/caminho/que/definitivamente/nao/existe/saida.txt'
+
+task depois /bin/echo programa_continua_normalmente
+tarefa 'depois' cadastrada
+run sequential depois
+programa_continua_normalmente
+exit
+
+--- Teste 4: numero incorreto de argumentos ao iniciar (erro fatal) ---
 uso: ./processflow [workflowFile]
 
---- Teste 3: workflow file inexistente (erro fatal) ---
+--- Teste 5: workflow file inexistente (erro fatal) ---
 nao foi possivel abrir o arquivo workflow 'nao_existe.pf'
 
---- Teste 4: workflow sem comando exit, encerra por EOF do arquivo ---
+--- Teste 6: workflow sem comando exit, encerra por EOF do arquivo ---
 task listar /bin/ls -l
 tarefa 'listar' cadastrada
 task contar /usr/bin/wc -l
