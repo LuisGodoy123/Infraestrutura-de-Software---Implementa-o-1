@@ -10,7 +10,6 @@ Orquestrador de processos implementado em C para a disciplina de Infraestrutura 
 | `processflow.h` | Structs (`Tarefa`, `Trabalho`, `Shell`) e protótipos de todas as funções. |
 | `Makefile` | Alvos `all`, `clean` e `test`. |
 | `evidencias.log` | Saída real de testes manuais executados sobre o programa compilado. |
-| `tests/*.pf` | Arquivos de workflow de exemplo, um por funcionalidade, usados pelo `make test`. |
 
 ## Sistema operacional
 
@@ -67,10 +66,12 @@ exit
 
 ## Como testar
 
+Criando um arquivo `.pf` com os comandos desejados e executando:
+
 ```bash
-make test
+./processflow arquivo.pf
 ```
 
-Roda o `processflow` contra todos os arquivos `.pf` em `tests/`. Também é possível testar manualmente, criando um arquivo `.pf` com os comandos desejados e executando `./processflow arquivo.pf`, ou digitando os comandos direto no modo interativo.
+Ou digitando os comandos direto no modo interativo (`./processflow`).
 
 O `evidencias.log` na raiz do projeto contém a saída real de uma bateria de testes cobrindo todos os comandos, casos de erro e casos de borda (linha vazia, espaços múltiplos, código de saída diferente de zero, término de processos paralelos em ordens diferentes, EOF sem `exit`).
