@@ -1,12 +1,12 @@
 === ProcessFlow - Evidencias de Testes ===
-Thu Aug 20 18:31:05 -03 2026
+Fri Aug 21 13:01:14 -03 2026
 
 --- Compilacao (make clean && make all) ---
 rm -f processflow
 gcc -Wall -Wextra -std=c11 -o processflow processflow.c
 
---- Teste 1: fluxo completo via workflow (.pf) ---
---- cobre: task, run sequential, run parallel, run pipe, erros nao-fatais, linha vazia, comando desconhecido ---
+--- Teste 1: fluxo completo - task, run sequential/parallel/pipe, input/output/append,
+--- codigo de saida != 0, start/jobs/wait, workdir, erros nao-fatais ---
 task listar /bin/ls
 tarefa 'listar' cadastrada
 task ordenar /usr/bin/sort
@@ -15,6 +15,12 @@ task contar /usr/bin/wc -l
 tarefa 'contar' cadastrada
 task saudacao /bin/echo ola mundo
 tarefa 'saudacao' cadastrada
+task falha /bin/ls /caminho/que/nao/existe
+tarefa 'falha' cadastrada
+task lenta /bin/sleep 1
+tarefa 'lenta' cadastrada
+task rapida /bin/sleep 0
+tarefa 'rapida' cadastrada
 
 run sequential saudacao listar
 ola mundo
@@ -24,13 +30,43 @@ evidencias.log
 processflow
 processflow.c
 processflow.h
-teste_evidencias.pf
+teste_completo.pf
 teste_sem_exit.pf
 run parallel saudacao saudacao
 ola mundo
 ola mundo
 run pipe listar ordenar contar
 8
+
+output listar lista_saida.txt
+run sequential listar
+input contar lista_saida.txt
+run sequential contar
+9
+append saudacao lista_saida.txt
+run sequential saudacao
+
+run sequential falha saudacao
+ls: cannot access '/caminho/que/nao/existe': No such file or directory
+
+start lenta
+[1] 1257
+jobs
+[1] 1257 executando lenta
+start rapida
+[2] 1258
+wait 1
+[1] 1257 finalizado (codigo 0)
+jobs
+[1] 1257 finalizado (codigo 0) lenta
+[2] 1258 finalizado (codigo 0) rapida
+wait 99
+job '99' nao encontrado
+
+workdir /tmp
+run sequential rapida
+workdir /caminho/que/nao/existe
+diretorio '/caminho/que/nao/existe' nao encontrado
 
 task
 task, nome, programa,argumentos...
@@ -40,9 +76,25 @@ run modoinvalido listar
 modo desconhecido 'modoinvalido'
 run sequential tarefainexistente
 tarefa 'tarefainexistente' nao encontrada
+input tarefainexistente arquivo.txt
+tarefa 'tarefainexistente' nao encontrada
 comandoinvalido
 comando desconhecido 'comandoinvalido'
+
 exit
+
+--- conteudo final de lista_saida.txt (output + input + append) ---
+Makefile
+README.md
+evidencias.log
+lista_saida.txt
+processflow
+processflow.c
+processflow.h
+teste_completo.pf
+teste_sem_exit.pf
+ola mundo
+ola mundo
 
 --- Teste 2: numero incorreto de argumentos ao iniciar (erro fatal) ---
 uso: ./processflow [workflowFile]
