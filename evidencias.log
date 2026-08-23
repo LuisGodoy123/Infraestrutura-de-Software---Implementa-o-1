@@ -1,5 +1,5 @@
 === ProcessFlow - Evidencias de Testes ===
-Sat Aug 22 11:41:24 -03 2026
+Sun Aug 23 11:48:41 -03 2026
 nononha
 /mnt/c/Users/nonon/Desktop/lagi/Infraestrutura-de-Software---Implementa-o-1
 
@@ -7,38 +7,80 @@ nononha
 rm -f processflow
 gcc -Wall -Wextra -std=c11 -o processflow processflow.c
 
---- Teste 1: modo interativo puro (sem argumento), prompt processflow>, multiplos espacos,
---- EOF/CTRL-D sem exit encerrando o programa (sem printf, via redirecionamento de arquivo) ---
-processflow> tarefa 'listar' cadastrada
-processflow> Makefile
+--- Teste A: casos de teste oficiais do professor (teste1/2/3) ---
+--- teste1: run sequential ---
+task t1 /bin/echo primeiro
+task t2 /bin/echo segundo
+run sequential t1 t2
+primeiro
+segundo
+exit
+
+--- teste2: run pipe ---
+task gerar /usr/bin/printf banana\nabacaxi\nmaca\n
+task ordenar /usr/bin/sort
+task copiar /bin/cat
+run pipe gerar ordenar copiar
+abacaxi
+banana
+maca
+exit
+
+--- teste3: run <tarefa> simples + output/append/input encadeados ---
+task escrever /bin/echo linha-um
+output escrever saida.txt
+run escrever
+task adicionar /bin/echo linha-dois
+append adicionar saida.txt
+run adicionar
+task mostrar /bin/cat
+input mostrar saida.txt
+run mostrar
+linha-um
+linha-dois
+exit
+
+--- diff teste3: saida real vs gabarito do professor (sem diferenca = identico) ---
+12c12
+< exit
+---
+> exit
+\ No newline at end of file
+
+--- Teste B: modo interativo puro, prompt processflow>, multiplos espacos,
+--- EOF/CTRL-D sem exit encerrando o programa ---
+processflow> processflow> Makefile
 README.md
 evidencias.log
 processflow
 processflow.c
 processflow.h
+saida.txt
+saida_teste3_real.txt
+teste1-entrada.txt
+teste1-saida-esperada.txt
+teste2-entrada.txt
+teste2-saida-esperada.txt
+teste3-entrada.txt
+teste3-saida-esperada.txt
 teste_arquivos_invalidos.pf
 teste_completo.pf
 teste_interativo_stdin.txt
 teste_sem_exit.pf
 processflow> 
 
---- Teste 2: fluxo completo em modo workflow - task, run sequential/parallel/pipe,
+--- Teste C: fluxo completo em modo workflow - task, run <tarefa>, run sequential/parallel/pipe,
 --- input/output/append, codigo de saida != 0, start/jobs/wait, workdir, erros nao-fatais ---
 task listar /bin/ls
-tarefa 'listar' cadastrada
 task ordenar /usr/bin/sort
-tarefa 'ordenar' cadastrada
 task contar /usr/bin/wc -l
-tarefa 'contar' cadastrada
 task saudacao /bin/echo ola mundo
-tarefa 'saudacao' cadastrada
 task falha /bin/ls /caminho/que/nao/existe
-tarefa 'falha' cadastrada
 task lenta /bin/sleep 1
-tarefa 'lenta' cadastrada
 task rapida /bin/sleep 0
-tarefa 'rapida' cadastrada
 
+run saudacao
+ola mundo
 run sequential saudacao listar
 ola mundo
 Makefile
@@ -47,6 +89,14 @@ evidencias.log
 processflow
 processflow.c
 processflow.h
+saida.txt
+saida_teste3_real.txt
+teste1-entrada.txt
+teste1-saida-esperada.txt
+teste2-entrada.txt
+teste2-saida-esperada.txt
+teste3-entrada.txt
+teste3-saida-esperada.txt
 teste_arquivos_invalidos.pf
 teste_completo.pf
 teste_interativo_stdin.txt
@@ -55,13 +105,13 @@ run parallel saudacao saudacao
 ola mundo
 ola mundo
 run pipe listar ordenar contar
-10
+18
 
 output listar lista_saida.txt
 run sequential listar
 input contar lista_saida.txt
 run sequential contar
-11
+19
 append saudacao lista_saida.txt
 run sequential saudacao
 
@@ -69,16 +119,16 @@ run sequential falha saudacao
 ls: cannot access '/caminho/que/nao/existe': No such file or directory
 
 start lenta
-[1] 485
+[1] 466
 jobs
-[1] 485 executando lenta
+[1] 466 executando lenta
 start rapida
-[2] 486
+[2] 467
 wait 1
-[1] 485 finalizado (codigo 0)
+[1] 466 finalizado (codigo 0)
 jobs
-[1] 485 finalizado (codigo 0) lenta
-[2] 486 finalizado (codigo 0) rapida
+[1] 466 finalizado (codigo 0) lenta
+[2] 467 finalizado (codigo 0) rapida
 wait 99
 job '99' nao encontrado
 
@@ -90,7 +140,7 @@ diretorio '/caminho/que/nao/existe' nao encontrado
 task
 task, nome, programa,argumentos...
 run
-run sequential|parallel|pipe, tarefa...>
+uso: run <tarefa> | run <sequential|parallel|pipe> <tarefa...>
 run modoinvalido listar
 modo desconhecido 'modoinvalido'
 run sequential tarefainexistente
@@ -110,6 +160,14 @@ lista_saida.txt
 processflow
 processflow.c
 processflow.h
+saida.txt
+saida_teste3_real.txt
+teste1-entrada.txt
+teste1-saida-esperada.txt
+teste2-entrada.txt
+teste2-saida-esperada.txt
+teste3-entrada.txt
+teste3-saida-esperada.txt
 teste_arquivos_invalidos.pf
 teste_completo.pf
 teste_interativo_stdin.txt
@@ -117,34 +175,29 @@ teste_sem_exit.pf
 ola mundo
 ola mundo
 
---- Teste 3: arquivo de entrada inexistente e arquivo de saida em diretorio inexistente ---
+--- Teste D: arquivo de entrada inexistente e arquivo de saida em diretorio inexistente ---
 --- (nao podem ser abertos) - erro nao-fatal, programa continua normalmente ---
 task contar /usr/bin/wc -l
-tarefa 'contar' cadastrada
 input contar arquivo_que_nao_existe_de_verdade.txt
 run sequential contar
 nao foi possivel abrir arquivo de entrada 'arquivo_que_nao_existe_de_verdade.txt'
 
 task listar /bin/ls
-tarefa 'listar' cadastrada
 output listar /caminho/que/definitivamente/nao/existe/saida.txt
 run sequential listar
 nao foi possivel abrir arquivo de saida '/caminho/que/definitivamente/nao/existe/saida.txt'
 
 task depois /bin/echo programa_continua_normalmente
-tarefa 'depois' cadastrada
 run sequential depois
 programa_continua_normalmente
 exit
 
---- Teste 4: numero incorreto de argumentos ao iniciar (erro fatal) ---
+--- Teste E: numero incorreto de argumentos ao iniciar (erro fatal) ---
 uso: ./processflow [workflowFile]
 
---- Teste 5: workflow file inexistente (erro fatal) ---
+--- Teste F: workflow file inexistente (erro fatal) ---
 nao foi possivel abrir o arquivo workflow 'nao_existe.pf'
 
---- Teste 6: workflow sem comando exit, encerra por EOF do arquivo ---
+--- Teste G: workflow sem comando exit, encerra por EOF do arquivo ---
 task listar /bin/ls -l
-tarefa 'listar' cadastrada
 task contar /usr/bin/wc -l
-tarefa 'contar' cadastrada

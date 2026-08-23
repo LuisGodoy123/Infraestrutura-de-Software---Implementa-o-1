@@ -51,6 +51,7 @@ Cada linha do arquivo é impressa antes de ser processada. Ambos os modos termin
 
 ```
 task <nome> <programa> [argumentos...]
+run <tarefa>
 run sequential <tarefa1> [tarefa2...]
 run parallel <tarefa1> [tarefa2...]
 run pipe <tarefa1> [tarefa2...]
