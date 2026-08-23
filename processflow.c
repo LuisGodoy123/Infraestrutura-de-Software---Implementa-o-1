@@ -136,7 +136,6 @@ void ComandoTask(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos
     NovaTarefa->Argumentos[NovaTarefa->QuantidadeArgumentos] = NULL;
 
     ProcessFlow->QuantidadeTarefas++;
-    printf("tarefa '%s' cadastrada\n", NovaTarefa->Nome);
 }
 
 void ComandoInput(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
@@ -277,8 +276,22 @@ void ComandoWait(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos
 }
 
 void ComandoRun(Shell *ProcessFlow, char **Argumentos, int QuantidadeArgumentos) {
-    if (QuantidadeArgumentos < 3) {
-        fprintf(stderr, "run sequential|parallel|pipe, tarefa...>\n");
+    if (QuantidadeArgumentos < 2) {
+        fprintf(stderr, "uso: run <tarefa> | run <sequential|parallel|pipe> <tarefa...>\n");
+        return;
+    }
+
+    if (QuantidadeArgumentos == 2) {
+        Tarefa *TarefaAlvo = BuscarTarefa(ProcessFlow, Argumentos[1]);
+        if (TarefaAlvo == NULL) {
+            fprintf(stderr, "tarefa '%s' nao encontrada\n", Argumentos[1]);
+            return;
+        }
+
+        pid_t Pid = IniciarTarefa(TarefaAlvo, -1, -1);
+        if (Pid > 0) {
+            waitpid(Pid, NULL, 0);
+        }
         return;
     }
 
